@@ -14,9 +14,42 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      # Debug: Output current user and directory information
+      - name: Debug Info
+        shell: pwsh
+        run: |
+          Write-Host "Current user: $(whoami)"
+          Write-Host "Current directory: $(Get-Location)"
+
+      # Check directory permissions
+      - name: Check Directory Permissions
+        shell: pwsh
+        run: |
+          icacls "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"
+
+      # Attempt to close any open handles
+      - name: Close Handles
+        shell: pwsh
+        run: |
+          taskkill /F /IM "git.exe" /T
+          taskkill /F /IM "node.exe" /T
+
+      # Clean workspace before checkout
+      - name: Clean Workspace
+        shell: pwsh
+        run: |
+          $path = "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"
+          if (Test-Path $path) {
+            Get-ChildItem -Path $path -Recurse | Remove-Item -Force -Recurse
+            Remove-Item $path -Force -Recurse
+          }
+
       # Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          timeout-minutes: 15
 
       # Set up Docker Buildx
       - name: Set up Docker Buildx
@@ -28,28 +61,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-      # Debug: List contents of workspace directory
-      - name: Debug Workspace Directory Before Deletion
-        run: |
-          echo "Listing contents of workspace directory before deleting:"
-          dir C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask
-
-      # Force close handles
-      - name: Force Close Handles
-        run: |
-          taskkill /F /IM "git.exe" /T
-          taskkill /F /IM "node.exe" /T
-
-      # Attempt to delete directory
-      - name: Clean Directory
-        run: |
-          for /L %%i in (1,1,5) do (
-            rd /s /q "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask" && exit 0 || (
-              echo "Retrying in 5 seconds..."
-              timeout /t 5 /nobreak >nul
-            )
-          )
 
       # Build and push Docker image
       - name: Build and Push Docker Image
@@ -99,3 +110,28 @@ jobs:
         if: failure()
         run: |
           kubectl rollout undo deployment/your-deployment-name
+
+  cleanup:
+    name: Cleanup
+    runs-on: self-hosted
+    if: always()
+    needs: [build, deploy]
+
+    steps:
+      - name: Final Cleanup
+        shell: pwsh
+        run: |
+          $path = "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"
+          if (Test-Path $path) {
+            Write-Host "Attempting to remove $path"
+            Get-ChildItem -Path $path -Recurse | Remove-Item -Force -Recurse -ErrorAction Continue
+            Remove-Item $path -Force -Recurse -ErrorAction Continue
+            if (Test-Path $path) {
+              Write-Host "Failed to completely remove $path"
+              Get-ChildItem -Path $path -Recurse | ForEach-Object { $_.FullName }
+            } else {
+              Write-Host "Successfully removed $path"
+            }
+          } else {
+            Write-Host "Directory $path does not exist"
+          }
