@@ -27,22 +27,6 @@ jobs:
         run: |
           icacls "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"
 
-      # Attempt to close any open handles
-      - name: Close Handles
-        shell: pwsh
-        run: |
-          Start-Process -FilePath "taskkill" -ArgumentList "/F /IM git.exe /T" -Verb RunAs
-          Start-Process -FilePath "taskkill" -ArgumentList "/F /IM node.exe /T" -Verb RunAs
-      # Clean workspace before checkout
-      - name: Clean Workspace
-        shell: pwsh
-        run: |
-          $path = "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"
-          if (Test-Path $path) {
-            Get-ChildItem -Path $path -Recurse | Remove-Item -Force -Recurse
-            Remove-Item $path -Force -Recurse
-          }
-
       # Checkout the repository
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -121,16 +105,43 @@ jobs:
         shell: pwsh
         run: |
           $path = "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"
-          if (Test-Path $path) {
-            Write-Host "Attempting to remove $path"
-            Get-ChildItem -Path $path -Recurse | Remove-Item -Force -Recurse -ErrorAction Continue
-            Remove-Item $path -Force -Recurse -ErrorAction Continue
-            if (Test-Path $path) {
-              Write-Host "Failed to completely remove $path"
-              Get-ChildItem -Path $path -Recurse | ForEach-Object { $_.FullName }
-            } else {
-              Write-Host "Successfully removed $path"
+          $maxAttempts = 5
+          $attempt = 1
+
+          do {
+            try {
+              if (Test-Path $path) {
+                Write-Host "Attempt $attempt to remove $path"
+                
+                # Try to release file handles
+                Get-ChildItem $path -Recurse | ForEach-Object {
+                  $_.Attributes = 'Normal'
+                }
+
+                # Use robocopy to empty the directory
+                $tempEmptyDir = New-Item -ItemType Directory -Path "$env:TEMP\empty-dir" -Force
+                robocopy "$tempEmptyDir" "$path" /PURGE
+                Remove-Item $tempEmptyDir -Force -Recurse
+
+                # Remove the directory
+                Remove-Item $path -Force -Recurse -ErrorAction Stop
+                Write-Host "Successfully removed $path"
+                break
+              } else {
+                Write-Host "Directory $path does not exist"
+                break
+              }
+            } catch {
+              Write-Host "Attempt $attempt failed. Error: $_"
+              if ($attempt -lt $maxAttempts) {
+                Write-Host "Retrying in 10 seconds..."
+                Start-Sleep -Seconds 10
+              }
+              $attempt++
             }
-          } else {
-            Write-Host "Directory $path does not exist"
+          } while ($attempt -le $maxAttempts)
+
+          if (Test-Path $path) {
+            Write-Host "Failed to completely remove $path after $maxAttempts attempts"
+            Get-ChildItem -Path $path -Recurse | ForEach-Object { $_.FullName }
           }
