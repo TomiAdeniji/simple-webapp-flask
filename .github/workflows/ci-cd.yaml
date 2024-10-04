@@ -31,9 +31,8 @@ jobs:
       - name: Close Handles
         shell: pwsh
         run: |
-          taskkill /F /IM "git.exe" /T
-          taskkill /F /IM "node.exe" /T
-
+          Start-Process -FilePath "taskkill" -ArgumentList "/F /IM git.exe /T" -Verb RunAs
+          Start-Process -FilePath "taskkill" -ArgumentList "/F /IM node.exe /T" -Verb RunAs
       # Clean workspace before checkout
       - name: Clean Workspace
         shell: pwsh
