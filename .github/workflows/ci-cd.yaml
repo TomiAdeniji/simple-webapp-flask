@@ -18,6 +18,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      # Debug: List contents of workspace directory
+      - name: Debug Workspace Directory Before Deletion
+        run: |
+          echo "Listing contents of workspace directory before deleting:"
+          dir C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask
+
+      # Attempt to delete directory (replace '%inputPath%' with the actual path if needed)
+      - name: Clean Directory
+        run: |
+          for i in {1..5}; do
+            if rd /s /q "C:\actions-runner\_work\simple-webapp-flask\simple-webapp-flask"; then
+              break
+            else
+              echo "Retrying in 5 seconds..."
+              sleep 5
+            fi
+          done  
+
       # Set up Docker
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
