@@ -1,13 +1,51 @@
-# simple-webapp-flask
-Assessment 2 for DevSecOps Cybergirls
-
-
-
 Simple WebApp Flask - CI/CD with Local Kubernetes Cluster in Docker Desktop
 
 Overview
 
-This project is a simple Flask web application, containerized with Docker, and deployed to a Kubernetes cluster using GitHub Actions for CI/CD. The Kubernetes cluster is set up locally using Docker Desktop, which helps in simulating a production-like environment without the need for cloud services. This project demonstrates end-to-end automation for deploying a Python-based web application, including build, containerization, and deployment.
+This project is a simple Flask web application that provides a basic API functionality. The application is containerized using Docker, and the deployment is automated using Kubernetes in a local environment via Docker Desktop, with GitHub Actions managing the CI/CD pipeline.
+
+Project Summary
+
+API Functionality
+
+The API serves as a basic web application using Flask. It listens on port 5000 and provides simple responses to HTTP requests, making it ideal for learning how to containerize and deploy web applications. The API could be expanded to include more complex endpoints and functionality, but for now, it is a basic demonstration of Flask capabilities.
+
+Containerization
+
+The API is containerized using Docker. The Dockerfile defines the environment, specifying the base image (python:3.x), installing the required dependencies, and copying the application code into the container. The Docker container can be built and run locally using the following commands:
+
+docker build -t simple-webapp-flask:latest .
+docker run -p 5000:5000 simple-webapp-flask
+
+This Docker container ensures that the application and all its dependencies are bundled together, making it easy to deploy in different environments.
+
+CI/CD Process
+
+The CI/CD pipeline is implemented using GitHub Actions. The workflow file located at .github/workflows/ci-cd.yaml is used to automate the following tasks:
+
+Build: The Docker image of the application is built whenever changes are pushed to the main branch.
+
+Push: The Docker image is pushed to Docker Hub for storage and later retrieval.
+
+Deploy: After the image is pushed, it is deployed to a local Kubernetes cluster using kubectl commands. The CI/CD pipeline is triggered by any code changes, allowing for continuous integration and deployment of new features.
+
+Kubernetes Deployment
+
+The application is deployed to a local Kubernetes cluster using Docker Desktop's Kubernetes feature. The deployment process involves:
+
+Creating Kubernetes Manifests: The deployment.yaml and service.yaml files are used to define the deployment of the Flask application and expose it as a service within the cluster.
+
+Applying Manifests: The manifests are applied using kubectl commands, which create pods, services, and other necessary Kubernetes resources to run the application.
+
+Accessing the Application: The service is accessed using kubectl port-forward to expose the service endpoint to localhost, making it accessible via http://localhost:5000.
+
+Security Measures
+
+Docker Image Security: The Docker image is kept minimal, based on a secure Python base image, reducing the attack surface.
+
+Kubernetes Role-Based Access Control (RBAC): Although not fully implemented in this version, RBAC can be used to limit permissions and secure access to the cluster.
+
+Secrets Management: Sensitive information, such as Docker Hub credentials and kubeconfig data, is managed using GitHub Secrets, ensuring they are not hard-coded into the source code.
 
 Prerequisites
 
@@ -127,3 +165,10 @@ Container Build Failure: Verify the Dockerfile syntax and ensure Docker is insta
 
 Pipeline Failures: Check the logs in the GitHub Actions tab for detailed error messages.
 
+Future Enhancements
+
+Monitoring and Alerts: Integrate Prometheus and Grafana for monitoring the Kubernetes cluster.
+
+Scalability: Experiment with autoscaling using Horizontal Pod Autoscaler (HPA).
+
+Security: Implement role-based access control (RBAC) and secure environment variables.
