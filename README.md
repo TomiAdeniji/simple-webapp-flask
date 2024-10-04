@@ -127,10 +127,3 @@ Container Build Failure: Verify the Dockerfile syntax and ensure Docker is insta
 
 Pipeline Failures: Check the logs in the GitHub Actions tab for detailed error messages.
 
-Future Enhancements
-
-Monitoring and Alerts: Integrate Prometheus and Grafana for monitoring the Kubernetes cluster.
-
-Scalability: Experiment with autoscaling using Horizontal Pod Autoscaler (HPA).
-
-Security: Implement role-based access control (RBAC) and secure environment variables.
